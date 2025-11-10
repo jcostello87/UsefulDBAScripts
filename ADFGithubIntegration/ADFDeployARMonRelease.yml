@@ -1,0 +1,31 @@
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - prd**
+name: Run Azure ARM
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-and-deploy:
+    environment: prd
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout code
+      - uses: actions/checkout@main
+        with:
+         ref: 'adf_publish'
+      # Log into Azure
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZ_SPN_JSON }}
+          enable-AzPSSession: true
+      # Deploy ARM template
+      - name: data-factory-deploy
+        uses: Azure/data-factory-deploy-action@v1.2.0
+        with:
+          resourceGroupName: ${{ vars.AZ_RESOURCEGROUP }}
+          dataFactoryName: ${{ vars.AZ_ADF_NAME }}
+          armTemplateFile: ./FEI-ADF-DCMGMTDEV/ARMTemplateForFactory.json
+          armTemplateParametersFile: ./ADF_PARAMETERS_PRD.json
